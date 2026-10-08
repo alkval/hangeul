@@ -7,7 +7,7 @@ const copy = {
   practice:['LITT HVER DAG','A LITTLE EVERY DAY','매일 조금씩'], title:['Bli kjent med 한글','Get to know 한글','한글과 친해지기'],
   intro:['Velg tegnene du vil øve på. Ta det i ditt eget tempo.','Choose what to practise. Go at your own pace.','연습할 글자를 선택하고 자신의 속도로 공부하세요.'],
   groups:['Hva vil du øve på?','What would you like to practise?','무엇을 연습할까요?'],
-  consonants:['Grunnkonsonanter','Basic consonants','기본 자음'], vowels:['Grunnvokaler','Basic vowels','기본 모음'],
+  consonants:['Konsonanter','Basic consonants','기본 자음'], vowels:['Vokaler','Basic vowels','기본 모음'],
   tense:['Doble konsonanter','Tense consonants','쌍자음'], extra:['Flere vokaler','More vowels','추가 모음'],
   syllables:['Stavelser','Syllables','음절'], finals:['Stavelser med 받침','Syllables with batchim','받침이 있는 음절'],
   all:['Alle','All','전체'], basic:['Grunntegn','Basics','기본 글자'], clear:['Tøm','Clear','해제'],
