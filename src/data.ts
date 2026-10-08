@@ -1,5 +1,5 @@
 export type Group = 'consonants' | 'vowels' | 'tense' | 'extra' | 'syllables' | 'finals';
-export interface Entry { id: string; glyph: string; roman: string; aliases: string[]; name: string; group: Group; audio: string; }
+export interface Entry { id: string; glyph: string; roman: string; aliases: string[]; name: string; group: Group; audio: string; exampleAudio?: string; exampleRoman?: string; }
 export const INITIALS = [...'ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ'];
 export const MEDIALS = [...'ㅏㅐㅑㅒㅓㅔㅕㅖㅗㅘㅙㅚㅛㅜㅝㅞㅟㅠㅡㅢㅣ'];
 export const FINALS = ['', ...'ㄱㄲㄳㄴㄵㄶㄷㄹㄺㄻㄼㄽㄾㄿㅀㅁㅂㅄㅅㅆㅇㅈㅊㅋㅌㅍㅎ'];
@@ -18,7 +18,7 @@ export function spellSyllable(initial: string, vowel: string, final = ''): strin
 const consonants: [string,string,string,string][] = [
   ['ㄱ','g / k','기역','가'], ['ㄴ','n','니은','나'], ['ㄷ','d / t','디귿','다'],
   ['ㄹ','r / l','리을','라'], ['ㅁ','m','미음','마'], ['ㅂ','b / p','비읍','바'],
-  ['ㅅ','s','시옷','사'], ['ㅇ','silent / ng','이응','아'], ['ㅈ','j','지읒','자'],
+  ['ㅅ','s','시옷','사'], ['ㅇ','silent / ng','이응','앙'], ['ㅈ','j','지읒','자'],
   ['ㅊ','ch','치읓','차'], ['ㅋ','k','키읔','카'], ['ㅌ','t','티읕','타'],
   ['ㅍ','p','피읖','파'], ['ㅎ','h','히읗','하'],
 ];
@@ -27,7 +27,8 @@ const tense: [string,string,string,string][] = [
   ['ㅆ','ss','쌍시옷','싸'], ['ㅉ','jj','쌍지읒','짜'],
 ];
 function consonantEntries(rows: typeof consonants, group: Group): Entry[] {
-  return rows.map(([glyph,roman,name,audio]) => ({id:glyph,glyph,roman,name,audio,group,
+  return rows.map(([glyph,roman,name,exampleAudio]) => ({id:glyph,glyph,roman,name,audio:name,group,exampleAudio,
+    exampleRoman:glyph==='ㅇ'?'ang':spellSyllable(glyph,'ㅏ'),
     aliases: glyph === 'ㅇ' ? ['silent','ng','stum','무음','silent/ng','ng/silent'] : [...roman.split(' / '),roman]}));
 }
 const basicVowels = [...'ㅏㅑㅓㅕㅗㅛㅜㅠㅡㅣ'];

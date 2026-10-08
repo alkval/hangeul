@@ -48,7 +48,7 @@ No router ports need to be opened. Tunnel credentials remain in the existing inf
 
 ## Learning conventions
 
-Romanization follows the [National Institute of Korean Language](https://www.korean.go.kr/front_eng/roman/roman_01.do). Isolated ㄱ, ㄷ, ㅂ and ㄹ accept both positional variants. Initial ㅇ is silent and final ㅇ is `ng`. The reference makes these differences explicit; pronunciation samples use actual syllables rather than attempting to vocalize an isolated consonant. The syllable builder shows isolated-syllable readings, not a complete Korean word pronunciation engine. Sound changes across syllables are outside this app's scope.
+Romanization follows the [National Institute of Korean Language](https://www.korean.go.kr/front_eng/roman/roman_01.do). Isolated ㄱ, ㄷ, ㅂ and ㄹ accept both positional variants. Initial ㅇ is silent and final ㅇ is `ng`. The reference makes these differences explicit; consonant audio buttons play the Korean letter name, explicitly labelled as a name. Separate, labelled syllable examples demonstrate consonant sounds in context. For ㅇ, the example is 앙 (ang), where the final ㅇ has the ng sound; 아 only demonstrates silent initial ㅇ. Vowel buttons play the vowel sound and syllable buttons play the syllable. These are synthetic Korean recordings, not recordings of isolated consonant phonemes. The syllable builder shows isolated-syllable readings, not a complete Korean word pronunciation engine. Sound changes across syllables are outside this app's scope.
 
 ## Frontend limitations
 
