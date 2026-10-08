@@ -13,3 +13,5 @@
 .audio-control{display:flex;flex-direction:column;align-items:flex-start;gap:8px;min-width:0}.audio-credit{font-size:.75rem;color:var(--muted);line-height:1.5;overflow-wrap:anywhere}.audio-credit a{text-decoration:underline}.builder-result .audio-control{align-items:center}.builder-result .audio-credit{text-align:center}
 
 @media(max-width:480px){.group-card small{position:absolute;top:7px;right:8px}.group-card>span{flex:1;padding-top:5px}.group-card strong{overflow-wrap:normal}}
+
+.notice{gap:12px;flex-wrap:wrap}.notice>span{flex:1;min-width:180px}.audio-unavailable{font-size:.75rem;text-align:center}

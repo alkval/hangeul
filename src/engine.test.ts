@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { statSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { audioUrl, recordings } from './audio.ts';
+import { audioUrl, recordings, availableAudioTexts, hasAudioClip } from './audio.ts';
 import { entries, compose, spellSyllable, FINALS, INITIALS, MEDIALS } from './data.ts';
 import { EXAM_OPENS, examIsOpen, correctAnswer, shuffle, optionsFor, recordAnswer, freshProgress, parseProgress } from './engine.ts';
 test('Oslo release boundary is Monday 12 October at 08:00 (+02:00)',()=>{
@@ -61,6 +61,17 @@ test('ae uses the attributed recording in every audio context, without a stale c
   const clip=readFileSync(new URL(`../public${audioUrl(ae.audio)}`,import.meta.url));
   assert.equal(createHash('sha256').update(clip).digest('hex'),'f6b430346c6d58a4c508ac963bfbd683c955dd9324e5d348d2f2390aefdd430a');
   assert.equal(audioUrl('가'),'/audio/%EA%B0%80.mp3');
+});
+test('all training sounds and 399 open syllables have actual clips; unsupported batchim has no playback button',()=>{
+  for(const l of INITIALS)for(const v of MEDIALS)assert.equal(hasAudioClip(compose(l,v)),true);
+  for(const text of ['게','갸','이응','앙','한'])assert.equal(hasAudioClip(text),true,text);
+  assert.equal(hasAudioClip('갹'),false);
+  for(const text of availableAudioTexts){
+    const path=new URL(`../public${audioUrl(text)}`,import.meta.url);
+    const clip=readFileSync(path);
+    assert.ok(clip.length>1000,text);
+    assert.ok(clip.subarray(0,3).toString()==='ID3'||(clip[0]===0xff&&(clip[1]&0xe0)===0xe0),text);
+  }
 });
 test('mastery requires three consecutive correct answers and mistakes reset it',()=>{
   let p=freshProgress(); for(let i=0;i<3;i++)p=recordAnswer(p,'ㄱ',true);

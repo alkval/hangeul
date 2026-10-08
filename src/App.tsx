@@ -3,7 +3,7 @@ import { ArrowLeft, BookOpen, Check, ChevronLeft, ChevronRight, Clock3, Graduati
 import { entries, groups, compose, spellSyllable, INITIALS, MEDIALS, FINALS, type Entry, type Group } from './data';
 import { examIsOpen, EXAM_OPENS, poolFor, shuffle, optionsFor, correctAnswer, freshProgress, parseProgress, recordAnswer, type Direction } from './engine';
 import { translate, type CopyKey, type Language } from './copy';
-import { audioUrl, recordings } from './audio';
+import { audioUrl, recordings, hasAudioClip } from './audio';
 
 type Tab = 'quiz' | 'exam' | 'cards' | 'overview' | 'stats';
 type Question = { entry: Entry; options: Entry[] };
@@ -31,7 +31,7 @@ export default function App() {
   const [now,setNow] = useState(Date.now());
   const [progress,setProgress] = useState(()=>{try{return parseProgress(localStorage.getItem(PROGRESS_KEY));}catch{return freshProgress();}});
   const [storageError,setStorageError] = useState(false);
-  const [audioError,setAudioError] = useState(false);
+  const [audioError,setAudioError] = useState<string|null>(null);
   const [filter,setFilter] = useState<Group|'all'>('all');
   const [review,setReview] = useState(false);
   const [cardOrder,setCardOrder] = useState(()=>entries.map(e=>e.id));
@@ -75,23 +75,17 @@ export default function App() {
   useEffect(()=>{
     if(active && run.exam && !run.feedback && now>=run.deadline)submit('',true);
   },[now,run?.id,run?.index,run?.feedback,run?.finished]);
-  useEffect(()=>()=>{playing.current?.pause();if('speechSynthesis' in window)window.speechSynthesis.cancel();},[]);
+  useEffect(()=>()=>{playing.current?.pause();},[]);
 
-  function stopAudio() { playing.current?.pause(); playing.current=null; if('speechSynthesis' in window)window.speechSynthesis.cancel(); }
+  function stopAudio() { playing.current?.pause(); playing.current=null; }
   function speak(text: string) {
     if(!settings.sound)return;
-    setAudioError(false);stopAudio();
+    setAudioError(null);stopAudio();
+    if(!hasAudioClip(text))return;
     const audio = new Audio(audioUrl(text)); playing.current=audio;
-    audio.play().catch(()=>{
-      if(playing.current!==audio)return;
-      // Do not replace a recorded pronunciation with unverified speech synthesis.
-      if(recordings[text]){setAudioError(true);return;}
-      if(!('speechSynthesis' in window)){setAudioError(true);return;}
-      const voice=window.speechSynthesis.getVoices().find(v=>v.lang.toLowerCase().startsWith('ko'));
-      if(!voice){setAudioError(true);return;}
-      const utterance=new SpeechSynthesisUtterance(text);utterance.voice=voice;utterance.lang='ko-KR';utterance.rate=.8;
-      utterance.onerror=()=>setAudioError(true);window.speechSynthesis.speak(utterance);
-    });
+    const failed=()=>{if(playing.current===audio)setAudioError(text);};
+    audio.onerror=()=>{if(audio.error?.code!==1)failed();};
+    audio.play().catch(failed);
   }
   function start(exam=false, custom?: Entry[]) {
     if(exam && !examIsOpen())return;
@@ -132,6 +126,7 @@ export default function App() {
   }
   const soundButton=(text: string,label=t('listen'),visible=false)=>{
     const recording=recordings[text];
+    if(!hasAudioClip(text))return <span className="muted audio-unavailable">{t('audioUnavailable')}</span>;
     return <div className="audio-control"><button className={visible?'audio-action':'icon-button'} aria-label={label} disabled={!settings.sound} onClick={()=>speak(text)}><Volume2 size={20}/>{visible&&<span>{label}</span>}</button>{recording&&<small className="audio-credit">{t('recording')}: <a href={recording.source} target="_blank" rel="noreferrer">{recording.author}</a> · <a href={recording.license} target="_blank" rel="noreferrer">CC BY-SA 4.0</a></small>}</div>;
   };
   function entryAudio(entry: Entry,expanded=false) {
@@ -157,7 +152,7 @@ export default function App() {
     </header>
     <nav className="navigation" aria-label="Hangeul">{(['quiz','exam','cards','overview','stats'] as Tab[]).map(key=>{const Icon=tabIcons[key];return <button key={key} aria-current={tab===key?'page':undefined} onClick={()=>navigate(key)} className={tab===key?'active':''}><Icon size={19}/><span>{t(key)}</span>{key==='exam'&&!unlocked&&<LockKeyhole size={13} className="nav-lock"/>}</button>;})}</nav>
     {storageError&&<p className="notice" role="status">{t('storageError')}</p>}
-    {audioError&&<p className="notice" role="status">{t('audioMissing')}<button onClick={()=>setAudioError(false)} aria-label={t('close')}><X size={16}/></button></p>}
+    {audioError&&<p className="notice" role="status"><span>{t('audioMissing')} ({audioError})</span><button className="text-button" onClick={()=>speak(audioError)}>{t('audioRetry')}</button><button onClick={()=>setAudioError(null)} aria-label={t('close')}><X size={16}/></button></p>}
     <main>
     {active && question ? <section className="session panel">
       <div className="session-top"><button className="text-button" onClick={()=>{if(confirm(t('cancelConfirm'))){setRun(null);stopAudio();}}}><ArrowLeft size={17}/>{t('cancel')}</button><span>{t('question')} {run.index+1} / {run.questions.length}</span></div>
