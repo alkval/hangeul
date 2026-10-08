@@ -1,0 +1,23 @@
+services:
+  hangeul:
+    build: .
+    image: hangeul:local
+    container_name: hangeul
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3015:8080"
+    networks:
+      - public_tunnel
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8080/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+
+networks:
+  public_tunnel:
+    external: true
+    name: ${PUBLIC_TUNNEL_NETWORK:-portfolio_default}
