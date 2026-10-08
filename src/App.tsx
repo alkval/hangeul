@@ -3,6 +3,7 @@ import { ArrowLeft, BookOpen, Check, ChevronLeft, ChevronRight, Clock3, Graduati
 import { entries, groups, compose, spellSyllable, INITIALS, MEDIALS, FINALS, type Entry, type Group } from './data';
 import { examIsOpen, EXAM_OPENS, poolFor, shuffle, optionsFor, correctAnswer, freshProgress, parseProgress, recordAnswer, type Direction } from './engine';
 import { translate, type CopyKey, type Language } from './copy';
+import { audioUrl, recordings } from './audio';
 
 type Tab = 'quiz' | 'exam' | 'cards' | 'overview' | 'stats';
 type Question = { entry: Entry; options: Entry[] };
@@ -80,9 +81,11 @@ export default function App() {
   function speak(text: string) {
     if(!settings.sound)return;
     setAudioError(false);stopAudio();
-    const audio = new Audio(`/audio/${encodeURIComponent(text)}.mp3`); playing.current=audio;
+    const audio = new Audio(audioUrl(text)); playing.current=audio;
     audio.play().catch(()=>{
       if(playing.current!==audio)return;
+      // Do not replace a recorded pronunciation with unverified speech synthesis.
+      if(recordings[text]){setAudioError(true);return;}
       if(!('speechSynthesis' in window)){setAudioError(true);return;}
       const voice=window.speechSynthesis.getVoices().find(v=>v.lang.toLowerCase().startsWith('ko'));
       if(!voice){setAudioError(true);return;}
@@ -127,7 +130,10 @@ export default function App() {
     setProgress(p=>({...p,items:{...p.items,[card.id]:{...(p.items[card.id]||{attempts:0,correct:0,streak:0}),mastered,needsPractice:!mastered}}}));
     if(!review)moveCard(1);else setFlipped(false);
   }
-  const soundButton=(text: string,label=t('listen'),visible=false)=><button className={visible?'audio-action':'icon-button'} aria-label={label} disabled={!settings.sound} onClick={()=>speak(text)}><Volume2 size={20}/>{visible&&<span>{label}</span>}</button>;
+  const soundButton=(text: string,label=t('listen'),visible=false)=>{
+    const recording=recordings[text];
+    return <div className="audio-control"><button className={visible?'audio-action':'icon-button'} aria-label={label} disabled={!settings.sound} onClick={()=>speak(text)}><Volume2 size={20}/>{visible&&<span>{label}</span>}</button>{recording&&<small className="audio-credit">{t('recording')}: <a href={recording.source} target="_blank" rel="noreferrer">{recording.author}</a> · <a href={recording.license} target="_blank" rel="noreferrer">CC BY-SA 4.0</a></small>}</div>;
+  };
   function entryAudio(entry: Entry,expanded=false) {
     const consonant=entry.group==='consonants'||entry.group==='tense';
     const label=t(consonant?'listenName':entry.group==='vowels'||entry.group==='extra'?'listenVowel':'listenSyllable');

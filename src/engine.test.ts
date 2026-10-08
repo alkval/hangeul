@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { statSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { audioUrl, recordings } from './audio.ts';
 import { entries, compose, spellSyllable, FINALS, INITIALS, MEDIALS } from './data.ts';
 import { EXAM_OPENS, examIsOpen, correctAnswer, shuffle, optionsFor, recordAnswer, freshProgress, parseProgress } from './engine.ts';
 test('Oslo release boundary is Monday 12 October at 08:00 (+02:00)',()=>{
@@ -47,6 +50,17 @@ test('shuffling preserves input and multiple choice never exposes another accept
     assert.equal(options.filter(o=>correctAnswer(e,o.roman,'read')).length,1,e.id);
     assert.equal(new Set(options.map(o=>o.id)).size,options.length);
   }
+});
+test('ae uses the attributed recording in every audio context, without a stale cached TTS path',()=>{
+  const ae=entries.find(e=>e.glyph==='ㅐ')!;
+  assert.equal(ae.audio,'애');
+  assert.equal(audioUrl(ae.audio),'/audio/ae-happymidnight-2019.mp3');
+  assert.equal(audioUrl(compose('ㅇ','ㅐ')),audioUrl(ae.audio));
+  assert.equal(recordings['애'].author,'HappyMidnight');
+  assert.equal(recordings['애'].license,'https://creativecommons.org/licenses/by-sa/4.0/');
+  const clip=readFileSync(new URL(`../public${audioUrl(ae.audio)}`,import.meta.url));
+  assert.equal(createHash('sha256').update(clip).digest('hex'),'f6b430346c6d58a4c508ac963bfbd683c955dd9324e5d348d2f2390aefdd430a');
+  assert.equal(audioUrl('가'),'/audio/%EA%B0%80.mp3');
 });
 test('mastery requires three consecutive correct answers and mistakes reset it',()=>{
   let p=freshProgress(); for(let i=0;i<3;i++)p=recordAnswer(p,'ㄱ',true);
