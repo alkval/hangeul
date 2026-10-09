@@ -5,8 +5,9 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { audioUrl, recordings, availableAudioTexts, hasAudioClip } from './audio.ts';
 import { entries, compose, spellSyllable, FINALS, INITIALS, MEDIALS } from './data.ts';
-import { EXAM_OPENS, examIsOpen, correctAnswer, shuffle, optionsFor, recordAnswer, freshProgress, parseProgress } from './engine.ts';
+import { EXAM_OPENS, EXAM_QUESTION_MS, examIsOpen, correctAnswer, shuffle, optionsFor, recordAnswer, freshProgress, parseProgress } from './engine.ts';
 test('Oslo release boundary is Monday 12 October at 08:00 (+02:00)',()=>{
+  assert.equal(EXAM_QUESTION_MS,5000);
   assert.equal(new Date(EXAM_OPENS).toISOString(),'2026-10-12T06:00:00.000Z');
   assert.equal(new Date(EXAM_OPENS).getUTCDay(),1);
   assert.equal(examIsOpen(EXAM_OPENS-1),false); assert.equal(examIsOpen(EXAM_OPENS),true);
@@ -49,6 +50,15 @@ test('shuffling preserves input and multiple choice never exposes another accept
     const options=optionsFor(e,entries,'read');
     assert.equal(options.filter(o=>correctAnswer(e,o.roman,'read')).length,1,e.id);
     assert.equal(new Set(options.map(o=>o.id)).size,options.length);
+  }
+});
+test('reverse multiple choice excludes glyphs sharing an accepted romanization',()=>{
+  for(const entry of entries){
+    const choices=optionsFor(entry,entries,'write');
+    assert.ok(choices.some(option=>option.id===entry.id));
+    for(const other of choices.filter(option=>option.id!==entry.id)){
+      assert.equal(other.aliases.some(alias=>correctAnswer(entry,alias,'read')),false,`${entry.id} / ${other.id}`);
+    }
   }
 });
 test('ae uses the attributed recording in every audio context, without a stale cached TTS path',()=>{

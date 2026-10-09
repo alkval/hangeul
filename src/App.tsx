@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, BookOpen, Check, ChevronLeft, ChevronRight, Clock3, GraduationCap, Layers3, LockKeyhole, RotateCcw, Shuffle, Sparkles, Target, Volume2, VolumeX, X, ChartNoAxesColumnIncreasing } from 'lucide-react';
 import { entries, groups, compose, spellSyllable, INITIALS, MEDIALS, FINALS, type Entry, type Group } from './data';
-import { examIsOpen, EXAM_OPENS, poolFor, shuffle, optionsFor, correctAnswer, freshProgress, parseProgress, recordAnswer, type Direction } from './engine';
+import { examIsOpen, EXAM_OPENS, EXAM_QUESTION_MS, poolFor, shuffle, optionsFor, correctAnswer, freshProgress, parseProgress, recordAnswer, type Direction } from './engine';
 import { translate, type CopyKey, type Language } from './copy';
 import { audioUrl, recordings, hasAudioClip } from './audio';
 
@@ -65,10 +65,12 @@ export default function App() {
   },[detail]);
   useEffect(()=>{
     const key=(event: KeyboardEvent)=>{
-      if(tab!=='cards'||detail||event.target instanceof HTMLInputElement||event.target instanceof HTMLSelectElement||event.target instanceof HTMLButtonElement)return;
-      if(event.code==='Space'){event.preventDefault();setFlipped(f=>!f);}
-      if(event.code==='ArrowRight')moveCard(1);
-      if(event.code==='ArrowLeft')moveCard(-1);
+      if(tab!=='cards'||detail||event.target instanceof HTMLInputElement||event.target instanceof HTMLSelectElement)return;
+      const onButton=event.target instanceof HTMLElement&&!!event.target.closest('button');
+      if(onButton&&!(event.target as HTMLElement).closest('.flash-section'))return;
+      if(event.code==='Space'&&!onButton){event.preventDefault();setFlipped(f=>!f);}
+      if(event.code==='ArrowRight'){event.preventDefault();moveCard(1);}
+      if(event.code==='ArrowLeft'){event.preventDefault();moveCard(-1);}
     };
     window.addEventListener('keydown',key); return ()=>window.removeEventListener('keydown',key);
   },[tab,deck.length,detail]);
@@ -76,8 +78,9 @@ export default function App() {
     if(active && run.exam && !run.feedback && now>=run.deadline)submit('',true);
   },[now,run?.id,run?.index,run?.feedback,run?.finished]);
   useEffect(()=>()=>{playing.current?.pause();},[]);
+  useEffect(()=>{stopAudio();},[builder.l,builder.v,builder.t]);
 
-  function stopAudio() { playing.current?.pause(); playing.current=null; }
+  function stopAudio() { playing.current?.pause(); playing.current=null; setAudioError(null); }
   function speak(text: string) {
     if(!settings.sound)return;
     setAudioError(null);stopAudio();
@@ -90,9 +93,9 @@ export default function App() {
   function start(exam=false, custom?: Entry[]) {
     if(exam && !examIsOpen())return;
     const source=custom||poolFor(exam?examGroups:selected);if(!source.length)return;
-    const questions=shuffle(source).slice(0,exam||count===0||custom?source.length:count).map(entry=>({entry,options:optionsFor(entry,source,exam?'read':direction)}));
+    const questions=shuffle(source).slice(0,exam||count===0||custom?source.length:count).map(entry=>({entry,options:optionsFor(entry,custom?entries.filter(other=>other.group===entry.group):source,exam?'read':direction)}));
     submission.current='';stopAudio();setInput('');
-    setRun({id:Array.from(crypto.getRandomValues(new Uint32Array(4))).join('-'),questions,index:0,answers:[],feedback:null,exam,direction:exam?'read':direction,mode:exam?'typing':mode,deadline:Date.now()+5000,finished:false});
+    setRun({id:Array.from(crypto.getRandomValues(new Uint32Array(4))).join('-'),questions,index:0,answers:[],feedback:null,exam,direction:exam?'read':direction,mode:exam?'typing':mode,deadline:Date.now()+EXAM_QUESTION_MS,finished:false});
   }
   function submit(answer: string, timedOut=false) {
     if(!run||run.finished||run.feedback)return;
@@ -107,7 +110,7 @@ export default function App() {
     if(run.exam){
       const finished=!correct||run.index===run.questions.length-1;
       if(finished && correct)setProgress(p=>({...p,exams:p.exams+1}));
-      setRun({...run,answers:[...run.answers,response],index:finished?run.index:run.index+1,deadline:Date.now()+5000,finished});setInput('');
+      setRun({...run,answers:[...run.answers,response],index:finished?run.index:run.index+1,deadline:Date.now()+EXAM_QUESTION_MS,finished});setInput('');
     }else setRun({...run,answers:[...run.answers,response],feedback:response});
   }
   function next() {
@@ -129,11 +132,16 @@ export default function App() {
     if(!hasAudioClip(text))return <span className="muted audio-unavailable">{t('audioUnavailable')}</span>;
     return <div className="audio-control"><button className={visible?'audio-action':'icon-button'} aria-label={label} disabled={!settings.sound} onClick={()=>speak(text)}><Volume2 size={20}/>{visible&&<span>{label}</span>}</button>{recording&&<small className="audio-credit">{t('recording')}: <a href={recording.source} target="_blank" rel="noreferrer">{recording.author}</a> · <a href={recording.license} target="_blank" rel="noreferrer">CC BY-SA 4.0</a></small>}</div>;
   };
+  function audioNotice(text: string) {
+    return <p className="notice" role="status"><span>{t('audioMissing')} ({text})</span><button className="text-button" onClick={()=>speak(text)}>{t('audioRetry')}</button><button onClick={()=>setAudioError(null)} aria-label={t('close')}><X size={16}/></button></p>;
+  }
+  function closeDetail() {stopAudio();setDetail(null);}
   function entryAudio(entry: Entry,expanded=false) {
     const consonant=entry.group==='consonants'||entry.group==='tense';
     const label=t(consonant?'listenName':entry.group==='vowels'||entry.group==='extra'?'listenVowel':'listenSyllable');
     return <div className="entry-audio">
       {soundButton(entry.audio,label,true)}
+      {detail&&audioError&&(audioError===entry.audio||audioError===entry.exampleAudio)&&audioNotice(audioError)}
       {expanded&&consonant&&<>
         <div className="audio-example"><span>{t('syllableExample')}: <strong>{entry.exampleAudio}</strong> ({entry.exampleRoman})</span>{soundButton(entry.exampleAudio!,t('listenExample'),true)}</div>
         <p className="muted">{t(entry.glyph==='ㅇ'?'ieungAudioNote':'audioGuide')}</p>
@@ -152,14 +160,15 @@ export default function App() {
     </header>
     <nav className="navigation" aria-label="Hangeul">{(['quiz','exam','cards','overview','stats'] as Tab[]).map(key=>{const Icon=tabIcons[key];return <button key={key} aria-current={tab===key?'page':undefined} onClick={()=>navigate(key)} className={tab===key?'active':''}><Icon size={19}/><span>{t(key)}</span>{key==='exam'&&!unlocked&&<LockKeyhole size={13} className="nav-lock"/>}</button>;})}</nav>
     {storageError&&<p className="notice" role="status">{t('storageError')}</p>}
-    {audioError&&<p className="notice" role="status"><span>{t('audioMissing')} ({audioError})</span><button className="text-button" onClick={()=>speak(audioError)}>{t('audioRetry')}</button><button onClick={()=>setAudioError(null)} aria-label={t('close')}><X size={16}/></button></p>}
+    {audioError&&!detail&&audioNotice(audioError)}
     <main>
     {active && question ? <section className="session panel">
       <div className="session-top"><button className="text-button" onClick={()=>{if(confirm(t('cancelConfirm'))){setRun(null);stopAudio();}}}><ArrowLeft size={17}/>{t('cancel')}</button><span>{t('question')} {run.index+1} / {run.questions.length}</span></div>
       <div className="progress-track"><span style={{width:`${run.index/run.questions.length*100}%`}}/></div>
       <div className="question-meta"><span className="eyebrow">{t(question.entry.group)}</span>{run.exam?<span className="timer"><Clock3 size={18}/>{Math.max(0,(run.deadline-now)/1000).toFixed(1)} s</span>:<span>{t('score')}: {run.answers.filter(a=>a.correct).length}</span>}</div>
       <div className={`question-glyph ${run.direction==='write'?'roman-glyph':''}`}>{run.direction==='read'?question.entry.glyph:question.entry.roman}</div>
-      <p className="question-help">{t(run.direction==='read'?'romanPrompt':'glyphPrompt')}</p>
+      {run.direction==='write'&&(question.entry.group==='consonants'||question.entry.group==='tense')&&<p className="question-help">{t('letterName')}: {question.entry.name}</p>}
+      <p className="question-help">{t(run.mode==='choice'?(run.direction==='read'?'romanChoicePrompt':'glyphChoicePrompt'):(run.direction==='read'?'romanPrompt':'glyphPrompt'))}</p>
       {run.mode==='typing'?<form onSubmit={e=>{e.preventDefault();if(run.feedback)next();else submit(input);}}>
         <label className="sr-only" htmlFor="answer">{t('answer')}</label><input className="answer-input" id="answer" ref={answerInput} value={input} autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck={false} readOnly={!!run.feedback} onChange={e=>setInput(e.target.value)} placeholder={t('answer')} maxLength={60}/>
         <button className="primary" disabled={!run.feedback&&!input.trim()} type="submit">{t(run.feedback?'next':'check')}</button>
@@ -185,7 +194,7 @@ export default function App() {
       {!unlocked&&<div className="exam-lock"><LockKeyhole size={28}/><h2>{t('locked')}</h2><p>{t('unlockDate')}</p>{countdown()}</div>}
       <p className="exam-rule"><Clock3 size={19}/>{t('examRule')}</p><fieldset><legend>{t('syllabus')}</legend><div className="syllabus-options">{[{label:'basic',value:['consonants','vowels']},{label:'letters',value:letterGroups},{label:'full',value:groups}].map(({label,value})=><button key={label} aria-pressed={examGroups.length===value.length} onClick={()=>setExamGroups(value as Group[])} className={examGroups.length===value.length?'selected':''}><span>{t(label as CopyKey)}</span><strong>{poolFor(value as Group[]).length}</strong></button>)}</div></fieldset><button className="primary" disabled={!unlocked} onClick={()=>start(true)}>{!unlocked?<LockKeyhole size={19}/>:<GraduationCap size={20}/>} {t('examStart')}</button>
     </section></>}
-    {tab==='cards'&&<><div className="page-heading"><h1>{t('cards')}</h1></div><div className="card-controls"><label>{t('filter')}<select value={filter} onChange={e=>{setFilter(e.target.value as Group|'all');setCardIndex(0);setFlipped(false);}}><option value="all">{t('all')}</option>{groups.map(g=><option key={g} value={g}>{t(g)}</option>)}</select></label><button className="secondary" onClick={()=>{setCardOrder(shuffle(entries.map(e=>e.id)));setCardIndex(0);setFlipped(false);}}><Shuffle size={17}/>{t('shuffle')}</button><label className="review-check"><input type="checkbox" checked={review} onChange={e=>{setReview(e.target.checked);setCardIndex(0);setFlipped(false);}}/>{t('reviewOnly')}</label></div>
+    {tab==='cards'&&<><div className="page-heading"><h1>{t('cards')}</h1></div><div className="card-controls"><label>{t('filter')}<select value={filter} onChange={e=>{stopAudio();setFilter(e.target.value as Group|'all');setCardIndex(0);setFlipped(false);}}><option value="all">{t('all')}</option>{groups.map(g=><option key={g} value={g}>{t(g)}</option>)}</select></label><button className="secondary" onClick={()=>{stopAudio();setCardOrder(shuffle(entries.map(e=>e.id)));setCardIndex(0);setFlipped(false);}}><Shuffle size={17}/>{t('shuffle')}</button><label className="review-check"><input type="checkbox" checked={review} onChange={e=>{stopAudio();setReview(e.target.checked);setCardIndex(0);setFlipped(false);}}/>{t('reviewOnly')}</label></div>
       {card?<section className="flash-section"><button className={`flash-card ${flipped?'flipped':''}`} onClick={()=>setFlipped(f=>!f)} aria-label={`${t('flip')}: ${flipped?card.roman:card.glyph}`}><span className="eyebrow">{t(card.group)}</span><span className={flipped?'flash-roman':'flash-glyph'}>{flipped?card.roman:card.glyph}</span>{flipped&&<span className="flash-name">{card.name}</span>}<span className="flip-hint">{t('flip')}</span></button>{entryAudio(card,flipped)}<div className="flash-nav"><button className="secondary" onClick={()=>moveCard(-1)}><ChevronLeft size={18}/>{t('previous')}</button><span>{cardIndex%deck.length+1} / {deck.length}</span><button className="secondary" onClick={()=>moveCard(1)}>{t('next')}<ChevronRight size={18}/></button></div><div className="flash-mark"><button className="secondary" onClick={()=>markCard(false)}><RotateCcw size={18}/>{t('needsPractice')}</button><button className="primary" onClick={()=>markCard(true)}><Check size={19}/>{t('mastered')}</button></div></section>:<p className="panel empty-state">{t('emptyReview')}</p>}
     </>}
     {tab==='overview'&&<><div className="page-heading"><h1>{t('overview')}</h1></div><section className="builder panel"><div className="builder-fields"><h2>{t('builder')}</h2><div className="builder-selects"><label>{t('onset')}<select value={builder.l} onChange={e=>setBuilder({...builder,l:e.target.value})}>{INITIALS.map(g=><option key={g}>{g}</option>)}</select></label><label>{t('medial')}<select value={builder.v} onChange={e=>setBuilder({...builder,v:e.target.value})}>{MEDIALS.map(g=><option key={g}>{g}</option>)}</select></label><label>{t('final')}<select value={builder.t} onChange={e=>setBuilder({...builder,t:e.target.value})}>{FINALS.map(g=><option key={g} value={g}>{g||t('none')}</option>)}</select></label></div><p className="muted">{t('syllableNote')}</p></div><div className="builder-result"><strong>{compose(builder.l,builder.v,builder.t)}</strong><span>{spellSyllable(builder.l,builder.v,builder.t)}</span>{soundButton(compose(builder.l,builder.v,builder.t),t('listenSyllable'))}</div></section>
@@ -197,6 +206,6 @@ export default function App() {
     </>}
     </main>
     <footer><span>Hangeul<span className="brand-dot">.</span> <span className="footer-korean">한글</span></span><span>{t('local')}</span><a href="https://www.korean.go.kr/front_eng/roman/roman_01.do" target="_blank" rel="noreferrer">{t('source')}</a></footer>
-    <dialog ref={dialogRef} className="detail-dialog" onCancel={()=>setDetail(null)} onClick={e=>{if(e.target===dialogRef.current)setDetail(null);}}>{detail&&<><button className="dialog-close icon-button" aria-label={t('close')} onClick={()=>setDetail(null)}><X size={21}/></button><p className="eyebrow">{t(detail.group)}</p><div className="detail-glyph">{detail.glyph}</div><dl><dt>{t('roman')}</dt><dd>{detail.roman}</dd><dt>{t('name')}</dt><dd>{detail.name}</dd></dl>{entryAudio(detail,true)}<p className="muted">{t(detail.group==='consonants'||detail.group==='tense'?'consonantNote':detail.group==='vowels'?'vowelNote':detail.group==='extra'?'extraNote':detail.group==='finals'?'finalNote':'syllableNote')}</p></>}</dialog>
+    <dialog ref={dialogRef} className="detail-dialog" onCancel={closeDetail} onClick={e=>{if(e.target===dialogRef.current)closeDetail();}}>{detail&&<><button className="dialog-close icon-button" aria-label={t('close')} onClick={closeDetail}><X size={21}/></button><p className="eyebrow">{t(detail.group)}</p><div className="detail-glyph">{detail.glyph}</div><dl><dt>{t('roman')}</dt><dd>{detail.roman}</dd><dt>{t(detail.group==='syllables'||detail.group==='finals'?'components':'letterName')}</dt><dd>{detail.name}</dd></dl>{entryAudio(detail,true)}<p className="muted">{t(detail.group==='consonants'||detail.group==='tense'?'consonantNote':detail.group==='vowels'?'vowelNote':detail.group==='extra'?'extraNote':detail.group==='finals'?'finalNote':'syllableNote')}</p></>}</dialog>
   </div>;
 }

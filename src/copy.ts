@@ -31,6 +31,8 @@ const copy = {
   previous:['Forrige','Previous','이전'], cancel:['Avslutt økten','End session','학습 종료'], cancelConfirm:['Avslutte økten? Besvarte spørsmål blir lagret.','End this session? Answered questions will be saved.','학습을 종료할까요? 답한 문제는 저장됩니다.'],
   correct:['Riktig!','Correct!','정답!'], wrong:['Ikke helt.','Not quite.','다시 확인해 보세요.'], solution:['Riktig svar','Correct answer','정답'],
   timeout:['Tiden er ute','Time is up','시간 초과'], question:['Spørsmål','Question','문제'], score:['Riktige','Correct','정답 수'],
+  romanChoicePrompt:['Velg riktig svar med latinske bokstaver','Choose the correct romanization','올바른 로마자를 선택하세요'],
+  glyphChoicePrompt:['Velg riktig hangeul-tegn','Choose the correct Hangeul character','올바른 한글을 선택하세요'],
   romanPrompt:['Skriv med latinske bokstaver','Type the romanization','로마자를 입력하세요'], glyphPrompt:['Skriv hangeul-tegnet','Type the Hangeul character','한글을 입력하세요'],
   koreanKeyboard:['Bruk det koreanske tastaturet på telefonen eller PC-en.','Use the Korean keyboard on your phone or computer.','휴대폰이나 컴퓨터의 한국어 키보드를 사용하세요.'],
   results:['Quizresultat','Quiz results','퀴즈 결과'],
@@ -68,7 +70,7 @@ const copy = {
   local:['Fremgangen lagres i denne nettleseren.','Progress is saved in this browser.','학습 기록은 이 브라우저에 저장됩니다.'],
   storageError:['Nettleseren tillater ikke lagring. Fremgangen beholdes bare mens siden er åpen.','Browser storage is unavailable. Progress will only last while this page is open.','저장소를 사용할 수 없습니다. 페이지를 닫으면 학습 기록이 사라집니다.'],
   close:['Lukk','Close','닫기'], noResults:['Ingen tegn funnet','No characters found','검색 결과가 없습니다'],
-  name:['Bokstavnavn / deler','Letter name / components','글자 이름 / 구성'], roman:['Romanisering','Romanization','로마자'],
+  letterName:['Bokstavnavn','Letter name','글자 이름'], components:['Deler','Components','구성'], roman:['Romanisering','Romanization','로마자'],
   home:['Tilbake til oppsett','Back to setup','설정으로 돌아가기'], complete:['mestret','mastered','완료'],
   source:['Uttale og romanisering','Pronunciation & romanization','발음과 로마자'],
 } satisfies Record<string, [string,string,string]>;

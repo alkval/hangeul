@@ -1,5 +1,6 @@
 import { entries, type Entry, type Group } from './data.ts';
 export const EXAM_OPENS = Date.parse('2026-10-12T08:00:00+02:00');
+export const EXAM_QUESTION_MS = 5000;
 export const examIsOpen = (now = Date.now()) => Number.isFinite(now) && now >= EXAM_OPENS;
 export type Direction = 'read' | 'write';
 export function normalize(text: string): string { return text.normalize('NFKC').trim().toLowerCase().replace(/\s+/g,''); }
@@ -19,8 +20,8 @@ export function shuffle<T>(items: readonly T[]): T[] {
 }
 export const poolFor = (selected: Group[]) => entries.filter(entry => selected.includes(entry.group));
 export function optionsFor(entry: Entry, pool: Entry[], direction: Direction): Entry[] {
-  const candidates = pool.filter(other => other.id !== entry.id && (direction === 'write' ||
-    !other.aliases.some(alias => entry.aliases.some(answer => normalize(answer) === normalize(alias)))));
+  const candidates = pool.filter(other => other.id !== entry.id &&
+    !other.aliases.some(alias => entry.aliases.some(answer => normalize(answer) === normalize(alias))));
   const unique = candidates.filter((other,index,list) => list.findIndex(item =>
     (direction === 'write' ? item.glyph === other.glyph : item.roman === other.roman)) === index);
   return shuffle([entry,...shuffle(unique).slice(0,3)]);
