@@ -19,12 +19,49 @@ export function shuffle<T>(items: readonly T[]): T[] {
   return result;
 }
 export const poolFor = (selected: Group[]) => entries.filter(entry => selected.includes(entry.group));
+const letterFamilies = ['ㄱㄲㅋ','ㄷㄸㅌ','ㅂㅃㅍ','ㅅㅆ','ㅈㅉㅊ','ㄴㄹ','ㅁㅇㅎ',
+  'ㅏㅑㅓㅕ','ㅗㅛㅜㅠ','ㅐㅒㅔㅖ','ㅡㅣㅢ','ㅘㅙㅚ','ㅝㅞㅟ'];
+function kind(group: Group): string {
+  return group==='consonants'||group==='tense'?'consonant':group==='vowels'||group==='extra'?'vowel':'syllable';
+}
+function editDistance(a: string,b: string): number {
+  let row=Array.from({length:b.length+1},(_,i)=>i);
+  for(let i=0;i<a.length;i++){
+    const next=[i+1];
+    for(let j=0;j<b.length;j++)next.push(Math.min(next[j]+1,row[j+1]+1,row[j]+Number(a[i]!==b[j])));
+    row=next;
+  }
+  return row[b.length];
+}
+function syllableParts(glyph: string): number[]|null {
+  const code=glyph.codePointAt(0)!-0xAC00;
+  return glyph.length===1&&code>=0&&code<11172?[Math.floor(code/588),Math.floor(code/28)%21,code%28]:null;
+}
+function similarity(a: Entry,b: Entry,direction: Direction): number {
+  const roman=Math.max(...a.aliases.flatMap(x=>b.aliases.map(y=>{
+    const left=normalize(x),right=normalize(y);
+    return 1-editDistance(left,right)/Math.max(left.length,right.length,1);
+  })));
+  const family=letterFamilies.some(letters=>letters.includes(a.glyph)&&letters.includes(b.glyph))?1:0;
+  const left=syllableParts(a.glyph),right=syllableParts(b.glyph);
+  const shared=left&&right?Number(left[0]===right[0])+Number(left[1]===right[1])+Number(left[2]!==0&&left[2]===right[2]):0;
+  return roman*(direction==='read'?3:1)+family*(direction==='write'?3:1)+shared*2;
+}
 export function optionsFor(entry: Entry, pool: Entry[], direction: Direction): Entry[] {
   const candidates = pool.filter(other => other.id !== entry.id &&
     !other.aliases.some(alias => entry.aliases.some(answer => normalize(answer) === normalize(alias))));
   const unique = candidates.filter((other,index,list) => list.findIndex(item =>
     (direction === 'write' ? item.glyph === other.glyph : item.roman === other.roman)) === index);
-  return shuffle([entry,...shuffle(unique).slice(0,3)]);
+  const sameGroup=unique.filter(other=>other.group===entry.group);
+  const sameKind=unique.filter(other=>kind(other.group)===kind(entry.group));
+  const candidatesByType=sameGroup.length>=3?sameGroup:sameKind.length>=3?sameKind:unique;
+  // Mix two related distractors with a more distinct one, rather than three near twins.
+  const ranked=shuffle(candidatesByType).sort((a,b)=>similarity(entry,b,direction)-similarity(entry,a,direction));
+  const first=shuffle(ranked.slice(0,2))[0];
+  const second=shuffle(ranked.slice(0,5).filter(other=>other!==first))[0];
+  const remaining=ranked.filter(other=>other!==first&&other!==second);
+  const easier=shuffle(remaining.slice(Math.floor(remaining.length/2)))[0];
+  return shuffle([entry,...[first,second,easier].filter((other):other is Entry=>!!other)]);
 }
 export interface ItemStats { attempts: number; correct: number; streak: number; mastered: boolean; needsPractice?: boolean; }
 export interface Progress { version: 1; answered: number; correct: number; streak: number; best: number; exams: number; items: Record<string,ItemStats>; }

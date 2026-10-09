@@ -61,6 +61,25 @@ test('reverse multiple choice excludes glyphs sharing an accepted romanization',
     }
   }
 });
+test('mixed quizzes keep distractors in the same group and include related vowel shapes',()=>{
+  for(const direction of ['read','write'] as const){
+    for(const entry of entries){
+      const choices=optionsFor(entry,entries,direction);
+      assert.equal(choices.length,4,entry.id);
+      assert.ok(choices.every(other=>other.group===entry.group),entry.id);
+    }
+    const a=entries.find(entry=>entry.id==='ㅏ')!;
+    for(let attempt=0;attempt<30;attempt++){
+      const choices=optionsFor(a,entries,direction);
+      assert.ok(choices.some(other=>['ㅑ','ㅓ','ㅕ'].includes(other.id)));
+    }
+  }
+});
+test('small pools do not invent or duplicate answer choices',()=>{
+  const a=entries.find(entry=>entry.id==='ㅏ')!,ya=entries.find(entry=>entry.id==='ㅑ')!;
+  assert.deepEqual(optionsFor(a,[a],'read'),[a]);
+  assert.equal(optionsFor(a,[a,ya],'read').length,2);
+});
 test('ae uses the attributed recording in every audio context, without a stale cached TTS path',()=>{
   const ae=entries.find(e=>e.glyph==='ㅐ')!;
   assert.equal(ae.audio,'애');

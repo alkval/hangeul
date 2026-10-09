@@ -6,7 +6,7 @@ Inspired by the learning flow of [Kana-trening](https://kana.ckolle.no/). This i
 
 ## Features
 
-- Configurable typing and multiple-choice quizzes in both directions.
+- Configurable typing and multiple-choice quizzes in both directions. Multiple choice mixes related distractors with a more distinct one, preferring the same character group and excluding ambiguous answers.
 - 40 letters, 40 introductory syllables and 20 syllables with final consonants.
 - Flashcards with shuffling, mastery marking and a review filter.
 - Searchable alphabet reference and Unicode syllable builder.
