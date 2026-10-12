@@ -1,4 +1,6 @@
 node_modules
+.audio-env
+__pycache__
 dist
 .git
 .env

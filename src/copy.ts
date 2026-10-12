@@ -1,7 +1,7 @@
 export type Language = 'nb' | 'en' | 'ko';
 const copy = {
   subtitle:['Lær det koreanske alfabetet','Learn the Korean alphabet','한글을 배워 보세요'],
-  quiz:['Quiz','Quiz','퀴즈'], exam:['Eksamen','Exam','시험'], cards:['Flashcards','Flashcards','학습 카드'],
+  quiz:['Quiz','Quiz','퀴즈'], words:['Les ord','Read words','단어 읽기'], exam:['Eksamen','Exam','시험'], cards:['Flashcards','Flashcards','학습 카드'],
   overview:['Lær og utforsk','Learn & explore','배우고 탐색하기'], stats:['Din fremgang','Your progress','나의 학습 기록'],
   language:['Språk','Language','언어'], sound:['Lyd på','Sound on','소리 켜짐'], mute:['Lyd av','Sound off','소리 꺼짐'],
   groups:['Hva vil du øve på?','What would you like to practise?','무엇을 연습할까요?'],

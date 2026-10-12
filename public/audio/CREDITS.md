@@ -26,3 +26,9 @@ This recording is distributed under CC BY-SA 4.0, separately from the applicatio
 This recording also retains CC BY-SA 4.0 separately from the code's MIT license.
 
 Other audio files are synthetic Korean speech generated with the ko-KR-SunHiNeural voice. They are examples, not professionally validated phonetic recordings.
+
+## Word quiz audio
+
+All clips under `words/` are prepared with the same **ko-KR-SunHiNeural** synthetic Korean voice, at -15% rate, using `scripts/generate-word-audio.py`. No human speaker or native recording is claimed. Full words are generated as a single utterance. The word quiz identifies the synthetic voice in its pronunciation notes.
+
+Word meanings and concise rule explanations are original. Pronunciation reference: National Institute of Korean Language's [Korean Basic Dictionary](https://krdict.korean.go.kr/eng/mainAction) and [standard pronunciation rules](https://www.korean.go.kr/kornorms/regltn/regltnView.do?regltn_code=0002); individual dictionary search links are included in the word bank. These sources are pronunciation references, not the source of the generated MP3 files.

@@ -4,8 +4,9 @@ import { entries, groups, compose, spellSyllable, INITIALS, MEDIALS, FINALS, typ
 import { examIsOpen, EXAM_OPENS, EXAM_QUESTION_MS, poolFor, shuffle, optionsFor, correctAnswer, freshProgress, parseProgress, recordAnswer, type Direction } from './engine';
 import { translate, type CopyKey, type Language } from './copy';
 import { audioUrl, recordings, hasAudioClip } from './audio';
+import WordQuiz from './WordQuiz';
 
-type Tab = 'quiz' | 'exam' | 'cards' | 'overview' | 'stats';
+type Tab = 'quiz' | 'words' | 'exam' | 'cards' | 'overview' | 'stats';
 type Question = { entry: Entry; options: Entry[] };
 type Answer = { entry: Entry; answer: string; correct: boolean; timedOut: boolean };
 type Run = { id: string; questions: Question[]; index: number; answers: Answer[]; feedback: Answer | null; exam: boolean; direction: Direction; mode: 'typing'|'choice'; deadline: number; finished: boolean };
@@ -14,13 +15,14 @@ function readSettings(): {lang: Language; sound: boolean} {
   try { const s=JSON.parse(localStorage.getItem(SETTINGS_KEY)||'null'); return {lang:['nb','en','ko'].includes(s?.lang)?s.lang:'nb',sound:s?.sound!==false}; }
   catch { return {lang:'nb',sound:true}; }
 }
-const tabIcons = {quiz:Target,exam:GraduationCap,cards:Layers3,overview:BookOpen,stats:ChartNoAxesColumnIncreasing};
+const tabIcons = {quiz:Target,words:BookOpen,exam:GraduationCap,cards:Layers3,overview:BookOpen,stats:ChartNoAxesColumnIncreasing};
 const groupExample: Record<Group,string> = {consonants:'ㄱ ㄴ ㄷ',vowels:'ㅏ ㅓ ㅗ',tense:'ㄲ ㄸ ㅃ',extra:'ㅐ ㅘ ㅢ',syllables:'가 나 다',finals:'한 국 밥'};
 const letterGroups: Group[] = ['consonants','vowels','tense','extra'];
 
 export default function App() {
   const [settings,setSettings] = useState(readSettings);
   const [tab,setTab] = useState<Tab>('quiz');
+  const [wordActive,setWordActive] = useState(false);
   const [selected,setSelected] = useState<Group[]>(['consonants','vowels']);
   const [mode,setMode] = useState<'typing'|'choice'>('typing');
   const [direction,setDirection] = useState<Direction>('read');
@@ -118,8 +120,8 @@ export default function App() {
     setInput('');stopAudio();setRun({...run,index:run.index+1,feedback:null,finished:run.index+1>=run.questions.length});
   }
   function navigate(nextTab: Tab) {
-    if(active && !confirm(t('cancelConfirm')))return;
-    stopAudio();setRun(null);setInput('');setTab(nextTab);setDetail(null);
+    if((active||wordActive) && !confirm(t('cancelConfirm')))return;
+    stopAudio();setRun(null);setWordActive(false);setInput('');setTab(nextTab);setDetail(null);
   }
   function moveCard(delta: number) {stopAudio();setCardIndex(i=>(i+delta+Math.max(1,deck.length))%Math.max(1,deck.length));setFlipped(false);}
   function markCard(mastered: boolean) {
@@ -158,7 +160,7 @@ export default function App() {
     <header className="header"><a className="brand" href="#" onClick={e=>{e.preventDefault();navigate('quiz');}}><span className="brand-mark">한</span><span><strong>Hangeul<span className="brand-dot">.</span></strong></span></a>
       <div className="header-tools"><label className="sr-only" htmlFor="language">{t('language')}</label><select id="language" value={settings.lang} onChange={e=>setSettings({...settings,lang:e.target.value as Language})}><option value="nb">Norsk</option><option value="en">English</option><option value="ko">한국어</option></select><button className="sound-toggle" aria-pressed={settings.sound} onClick={()=>{stopAudio();setSettings({...settings,sound:!settings.sound});}}>{settings.sound?<Volume2 size={18}/>:<VolumeX size={18}/>}<span>{t(settings.sound?'sound':'mute')}</span></button></div>
     </header>
-    <nav className="navigation" aria-label="Hangeul">{(['quiz','exam','cards','overview','stats'] as Tab[]).map(key=>{const Icon=tabIcons[key];return <button key={key} aria-current={tab===key?'page':undefined} onClick={()=>navigate(key)} className={tab===key?'active':''}><Icon size={19}/><span>{t(key)}</span>{key==='exam'&&!unlocked&&<LockKeyhole size={13} className="nav-lock"/>}</button>;})}</nav>
+    <nav className="navigation" aria-label="Hangeul">{(['quiz','words','exam','cards','overview','stats'] as Tab[]).map(key=>{const Icon=tabIcons[key];return <button key={key} aria-current={tab===key?'page':undefined} onClick={()=>navigate(key)} className={tab===key?'active':''}><Icon size={19}/><span>{t(key)}</span>{key==='exam'&&!unlocked&&<LockKeyhole size={13} className="nav-lock"/>}</button>;})}</nav>
     {storageError&&<p className="notice" role="status">{t('storageError')}</p>}
     {audioError&&!detail&&audioNotice(audioError)}
     <main>
@@ -180,6 +182,7 @@ export default function App() {
       {run.answers.some(a=>!a.correct)&&<div className="mistakes">{run.answers.filter(a=>!a.correct).map(a=><div key={a.entry.id}><span className="small-glyph">{a.entry.glyph}</span><span>{a.entry.roman}</span><small>{a.timedOut?t('timeout'):(a.answer||'—')}</small>{entryAudio(a.entry)}</div>)}</div>}
       <div className="result-actions">{run.answers.some(a=>!a.correct)&&<button className="primary" onClick={()=>start(false,run.answers.filter(a=>!a.correct).map(a=>a.entry))}>{t('retry')}</button>}<button className="secondary" onClick={()=>setRun(null)}>{t('home')}</button></div>
     </section> : <>
+    {tab==='words'&&<WordQuiz lang={settings.lang} sound={settings.sound} onActiveChange={setWordActive}/>}
     {tab==='quiz'&&<>
       <div className="page-heading quiz-heading"><h1>{t('quiz')}</h1></div>
       <div className="practice-layout"><section className="panel setup"><div className="section-heading"><h2><span className="step">01</span>{t('groups')}</h2><div className="inline-links"><button onClick={()=>setSelected([...groups])}>{t('all')}</button><button onClick={()=>setSelected(['consonants','vowels'])}>{t('basic')}</button><button onClick={()=>setSelected([])}>{t('clear')}</button></div></div>

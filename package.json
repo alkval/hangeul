@@ -6,8 +6,9 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "build": "tsc --noEmit && vite build",
-    "test": "node --experimental-strip-types --test src/engine.test.ts",
-    "preview": "vite preview --host 127.0.0.1"
+    "test": "node --experimental-strip-types --test src/engine.test.ts src/words.test.ts",
+    "preview": "vite preview --host 127.0.0.1",
+    "verify:word-audio": "node --experimental-strip-types scripts/verify-word-audio.ts"
   },
   "dependencies": {
     "lucide-react": "^1.53.0",
